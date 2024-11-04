@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat App</title>
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #333;
+        }
+
+        h1 {
+            color: #444;
+            margin-bottom: 20px;
+        }
+
+        #messageContainer {
+            width: 100%;
+            max-width: 600px;
+            margin-top: 20px;
+            padding: 10px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.1);
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .message {
+            background-color: #e0f7fa;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-size: 16px;
+            box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+            word-wrap: break-word;
+        }
+
+        .input-container {
+            width: 100%;
+            max-width: 600px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            padding: 20px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        label {
+            font-weight: bold;
+            color: #555;
+            margin-bottom: 5px;
+        }
+
+        input[type="number"],
+        textarea {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-sizing: border-box;
+            box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+        }
+
+        input[type="number"]:focus,
+        textarea:focus {
+            border-color: #03a9f4;
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+            outline: none;
+        }
+
+        textarea {
+            height: 60px;
+            resize: none;
+        }
+
+        button {
+            padding: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            color: #fff;
+            background-color: #03a9f4;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.15);
+            transition: background-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #0288d1;
+            box-shadow: 0px 6px 12px rgba(0, 0, 0, 0.2);
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Chat App</h1>
+
+    <div class="input-container">
+        <div>
+            <label for="fromUserId">From User ID:</label>
+            <input type="number" id="fromUserId" placeholder="Enter your User ID">
+        </div>
+        <div>
+            <label for="toUserId">To User ID:</label>
+            <input type="number" id="toUserId" placeholder="Enter recipient User ID">
+        </div>
+        <div>
+            <label for="message">Message:</label>
+            <textarea id="message" placeholder="Type your message here (max 10 characters)"></textarea>
+        </div>
+        <button onclick="sendMessage()">Send Message</button>
+    </div>
+
+    <div id="messageContainer"></div>
+
+    <script>
+        const socket = io('http://localhost:3001');
+        let fromUserId, toUserId;
+
+        socket.on('connect', () => {
+            console.log('Connected to server');
+        });
+
+        socket.on('disconnect', () => {
+            console.log('Disconnected from server');
+        });
+
+        function sendMessage() {
+            const message = document.getElementById('message').value;
+
+            if (!fromUserId || !toUserId) {
+                fromUserId = document.getElementById('fromUserId').value;
+                toUserId = document.getElementById('toUserId').value;
+
+                if (!fromUserId || !toUserId) {
+                    alert("Please enter both From User ID and To User ID.");
+                    return;
+                }
+
+                socket.emit('user_chat_init', { from_user_id: fromUserId, to_user_id: toUserId });
+            }
+
+            if (message && message.length <= 10) {
+                socket.emit('user_chat_message', { from_user_id: fromUserId, to_user_id: toUserId, message: message });
+                document.getElementById('message').value = ""; 
+            } else {
+                alert("Please enter a valid message (maximum 10 characters).");
+            }
+        }
+
+        socket.on('new_message', (data) => {
+            console.log('New message:', data);
+            appendNewMessage(data.message);
+        });
+
+        function appendNewMessage(message) {
+            const messageContainer = document.getElementById('messageContainer');
+            const newMessageElement = document.createElement('div');
+            newMessageElement.classList.add('message');
+            newMessageElement.textContent = message;
+
+            messageContainer.prepend(newMessageElement);
+        }
+    </script>
+</body>
+
+</html>
